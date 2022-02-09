@@ -73,3 +73,8 @@ void send_to_lcd_long(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4
 #else
 #error "Set DEVICE_TYPE!"
 #endif
+
+void show_welcome_message();
+#if USE_TRIGGER_OUT && defined(GPIO_RDS)
+void show_reed_opening_symbol(bool state);
+#endif

@@ -16,6 +16,7 @@
 
 #define LCD_SYM_BLE	0x10	// connect
 #define LCD_SYM_BAT	0x08	// battery
+#define LCD_SYM_RD	0x01	// rdopen
 
 RAM uint8_t lcd_i2c_addr;
 
@@ -326,3 +327,42 @@ _attribute_ram_code_ void show_clock(void) {
 #endif // USE_CLOCK
 
 #endif // DEVICE_TYPE == DEVICE_LYWSD03MMC
+
+_attribute_ram_code_ void show_welcome_message(){
+	extern u8  mac_public[6];
+	// // ATC on to & MAC in 3 parts bottom
+	// display_buff[2] = 0x05;
+	// display_buff[3] = 0xc2;
+	// display_buff[4] = 0xe2;
+	// display_buff[5] = 0x77; //7=01110111 - A
+	// uint8_t idx;
+	// for (idx=2; idx>0; idx--) {
+	// 	display_buff[0] = display_numbers[mac_public[idx] &0x0f];
+	// 	display_buff[1] = display_numbers[mac_public[idx]>>4];
+	// 	send_to_lcd();
+	// 	pm_wait_ms(1800);
+	// 	display_buff[0] = 0x00;
+	// 	display_buff[1] = 0x00;
+	// 	send_to_lcd();
+	// 	pm_wait_ms(200);
+	// }
+
+	// hELLo
+	display_buff[0] = 0xf5;	// O 11110101
+	display_buff[1] = 0xe0; // L 11100000
+	display_buff[2] = 0x00; //   00000000
+	display_buff[3] = 0xe0; // L 11100000
+	display_buff[4] = 0xfa; // E 11110010
+	display_buff[5] = 0x66; // h 01100110
+	send_to_lcd();
+	pm_wait_ms(1800);
+}
+
+#if USE_TRIGGER_OUT && defined(GPIO_RDS)
+_attribute_ram_code_ void show_reed_opening_symbol(bool state){
+	if(state)
+		display_buff[2] |= LCD_SYM_RD;
+	else 
+		display_buff[2] &= ~LCD_SYM_RD;
+}
+#endif

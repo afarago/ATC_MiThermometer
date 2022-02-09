@@ -32,6 +32,8 @@ RAM measured_data_t measured_data;
 RAM int16_t last_temp; // x0.1 C
 RAM uint16_t last_humi; // x1 %
 RAM uint8_t battery_level; // 0..100%
+RAM uint8_t last_reed_state; //CHANGED: reed pulse counting
+RAM uint8_t reed_counter; //CHANGED: reed pulse counting
 
 RAM volatile uint8_t tx_measures;
 
@@ -241,7 +243,19 @@ _attribute_ram_code_ void WakeupLowPowerCb(int par) {
 				mi_beacon_summ();
 #endif
 #if USE_TRIGGER_OUT && defined(GPIO_RDS)
+			//CHANGED: reed pulse counting
+			last_reed_state = trg.flg.rds_input;
+
 			test_trg_input();
+			
+			//CHANGED: reed pulse counting, send via battery 0-99
+			if (!trg.flg.rds_input && trg.flg.rds_input!=last_reed_state) {
+				// last_humi++;
+				// measured_data.humi = last_humi; // used at the pvvx sending in ble.c
+				reed_counter = (reed_counter+1)%100;
+			}
+			last_reed_state = trg.flg.rds_input;
+
 #endif
 			set_adv_data();
 			end_measure = 1;
@@ -375,13 +389,18 @@ void user_init_normal(void) {//this will get executed one time after power up
 #else
 	start_measure_sensor_low_power();
 #endif
+	//CHANGED: reed pulse counting, initial 100
+	reed_counter = 100;
+
 	check_battery();
 	WakeupLowPowerCb(0);
 	lcd();
 #if DEVICE_TYPE == DEVICE_LYWSD03MMC
 	update_lcd();
+	show_welcome_message(); //CHANGED: show custom welcome
 #endif
 	start_measure = 1;
+
 }
 
 //------------------ user_init_deepRetn -------------------
@@ -489,7 +508,9 @@ _attribute_ram_code_ __attribute__((optimize("-Os"))) void lcd(void) {
 			show_small_number((measured_data.humi + 5) / 10, 1);
 #else
 			show_battery_symbol(0);
-			show_small_number(last_humi, 1);
+			//CHANGED: reed pulse counting
+			// show_small_number(last_humi, 1);
+			show_small_number((reed_counter % 100), 0); // no percentage symbol, show pulse count mod 100
 #endif
 		}
 		if (cfg.flg.temp_F_or_C) {
@@ -501,6 +522,11 @@ _attribute_ram_code_ __attribute__((optimize("-Os"))) void lcd(void) {
 		}
 	}
 	show_ble_symbol(ble_connected);
+
+//CHANGED: reed pulse counting
+#if USE_TRIGGER_OUT && defined(GPIO_RDS)
+	show_reed_opening_symbol(!trg.flg.rds_input);
+#endif
 }
 
 //----------------------- main_loop()

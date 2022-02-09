@@ -375,7 +375,9 @@ void set_adv_data() {
 			p->temperature = measured_data.temp; // x0.01 C
 			p->humidity = measured_data.humi; // x0.01 %
 			p->battery_mv = measured_data.battery_mv; // x mV
-			p->battery_level = battery_level; // x1 %
+			//CHANGED: reed pulse counting
+			//p->battery_level = battery_level; // x1 %
+			p->battery_level = reed_counter; //0-99, except for first that is 100
 			p->counter = (uint8_t)measured_data.count;
 #if USE_TRIGGER_OUT
 			p->flags = trg.flg_byte;

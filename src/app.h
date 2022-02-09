@@ -136,6 +136,7 @@ extern measured_data_t measured_data;
 extern uint8_t battery_level; // 0..100%
 extern int16_t last_temp; // x0.1 C
 extern uint16_t last_humi; // x1 %
+extern uint8_t reed_counter; //CHANGED: reed pulse counting
 
 extern volatile uint8_t tx_measures;
 extern volatile uint8_t start_measure; // start measure all
