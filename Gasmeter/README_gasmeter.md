@@ -106,3 +106,6 @@ input_number:
     mode: box
 
 ```
+
+## Photo on the gasmeter setup
+![Gasmeter setup](gasmeter_setup.jpg "Gasmeter setup - still in prototyping phase")
