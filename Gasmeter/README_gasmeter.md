@@ -10,7 +10,7 @@ I have started working on the code with pulse counting and sending the actual st
 https://github.com/afarago/ATC_MiThermometer/tree/gasmeter_via_reed_switch
 
 ## Background
-I have soldered the reed counter pin out based on your description and am using a reed switch at a gas meter to monitor gas consumption.  On the other end there is a home assistant that receives the data. (temp, humi and reed state)
+I have soldered the reed counter pin out based on your description and am using a reed switch at a gas meter to monitor gas consumption.  On the other end there is a home assistant installation that receives the data. (temp, humi and reed state)
 
 After a few weeks of trial and error it seemed obvious that the current setup of BLE advertisements is not reliable enough to push the 1 second long closed signal reliably to the HA core.
 Reason for LYWSD03MMC is that it was available and there is no AC or DC power close to the meter to enable an ESP device.
@@ -70,30 +70,35 @@ template:
 
 ### BASE COUNTER #######################################################
 automation:
-- id: 'blegasmeter pulse cycle'
-  alias: BLEgasmeter with Entry Room Temp Open sensor pulse
-  description: 'BLEgasmeter reed sensor closes (off state between 9->0 every 0.01m³ = 10l) - increase counters'
-  trigger:
-    - platform: state
-      entity_id: sensor.blegasmeter_relative_count
-  variables:
-    # increment number is = ((current_value+100)-previous_value) mod 100 - should ne normally 1, but if advertisements are missed it can be more
-    # trigger.from_state.state, trigger.to_state.state
-    # first entry sent is: 100 - to make sure it is not counted after "powerdown"
-    increment_cycles: >-
-      {% if (trigger.from_state is not none) and (trigger.to_state is not none) and
-            (trigger.to_state!="unknown") and (trigger.to_state.state|default(0)|int<100) %}
-        {{ (((trigger.to_state.state|default(0)|int+100)-trigger.from_state.state|default(0)|int)%100) }}
-      {% else %}
-        0
-      {% endif %}
-  action:
-    - repeat:
-        count: "{{ increment_cycles }}"
-        sequence:
-          - service: input_number.increment
-            target:
-              entity_id: input_number.blegasmeter_meterat
+  - id: "blegasmeter pulse cycle"
+    alias: BLEgasmeter with Entry Room Temp Open sensor pulse
+    description: "BLEgasmeter reed sensor closes (off state between 9->0 every 0.01m³ = 10l) - increase counters"
+    trigger:
+      - platform: state
+        entity_id: sensor.blegasmeter_relative_count
+        # To trigger on all state changes, but not on changed attributes, set at least one of from or to to null.
+        # from: null
+    condition:
+      # first entry sent is: 100 - to make sure it is not counted after "powerdown"
+      - condition: template
+        value_template: >
+          {{
+            (trigger.from_state is not none) and (trigger.to_state is not none) and
+            (trigger.from_state.state not in ['unknown','unavailable']) and 
+            (trigger.to_state.state not in ['unknown','unavailable']) and
+            (trigger.to_state.state != trigger.from_state.state) and 
+            (trigger.to_state.state|int(0) < 100)
+          }}
+    variables:
+      increment_cycles: >-
+        {{ ( (trigger.to_state.state|int(0)+100) - (trigger.from_state.state|int(0)) ) % 100 }}
+    action:
+      - repeat:
+          count: "{{ increment_cycles }}"
+          sequence:
+            - service: input_number.increment
+              target:
+                entity_id: input_number.blegasmeter_meterat
 
 input_number:
   blegasmeter_meterat:
@@ -108,4 +113,5 @@ input_number:
 ```
 
 ## Photo on the gasmeter setup
+Gas meter with reed - still in a prototyping setup.
 ![Gasmeter setup](gasmeter_setup.jpg "Gasmeter setup - still in prototyping phase")
